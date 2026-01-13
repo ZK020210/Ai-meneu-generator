@@ -1,114 +1,83 @@
-# =====================================
-# AI MENU GENERATOR (TKS PROJECT)
-# By: Grade 10 Student
-# =====================================
-
 from openai import OpenAI
-import json
 
-# Create OpenAI client
-client = OpenAI(
-api_key = "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"
+# 🔐 PUT YOUR API KEY HERE
+client = OpenAI(api_key="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"
 )
 
-# -----------------------------
-# Function: Build AI Prompt
-# -----------------------------
-def build_prompt(
-    restaurant_type,
-    audience,
-    diet,
-    budget,
-    cuisine,
-    menu_categories
-):
-    prompt = f"""
-You are an AI culinary assistant.
+print("🍽️ Welcome to Menu AI")
+print("----------------------")
 
-Create a restaurant menu using these rules:
+# Ask user questions
+country = input("What country do you live in? ")
+restaurant_type = input("What type of restaurant is this? (cafe, fast food, fine dining): ")
+food_genre = input("What genre of food do you want? (Italian, Indian, Mexican, etc.): ")
+diet = input("Any dietary preference? (none, vegetarian, halal, vegan): ")
+budget = input("What is the budget level? (low, medium, high): ")
+num_dishes = input("How many menu items do you want? ")
 
-Restaurant type: {restaurant_type}
-Target audience: {audience}
-Dietary focus: {diet}
-Budget level: {budget}
-Cuisine style: {cuisine}
+# Basic input check
+if country == "" or food_genre == "" or restaurant_type == "":
+    print("❌ Missing required information.")
+    quit()
 
-Menu categories to include:
-{menu_categories}
+print("\n Generating menu...\n")
 
-RULES:
-- Make at least one dish per category
-- Follow dietary restrictions strictly
-- Keep dishes realistic
-- Do not repeat dishes
-
-Return ONLY valid JSON in this format:
-{{
-  "menu": [
-    {{
-      "dish_name": "",
-      "category": "",
-      "key_ingredients": [],
-      "estimated_cost": "",
-      "dietary_tags": []
-    }}
-  ]
-}}
+# -------------------------
+# STEP 1: Get currency
+# -------------------------
+currency_prompt = f"""
+What currency is used in {country}?
+Reply ONLY in this format:
+Currency Name - Symbol
+Example:
+US Dollar - $
 """
-    return prompt
 
-# -----------------------------
-# Function: Call AI
-# -----------------------------
-def call_ai(prompt):
-    response = client.responses.create(
-        model="gpt-4.1-mini",
-        input=prompt,
-        timeout=30
-    )
-    return response.output_text
-
-# -----------------------------
-# Main Program
-# -----------------------------
-print("🍽️ AI MENU GENERATOR\n")
-
-restaurant_type = input("Enter cusine type, for example fast food etc.: ")
-audience = input("Enter target audience: ")
-diet = input("Enter dietary focus: ")
-budget = input("Enter budget level: ")
-cuisine = input("Enter cuisine style: ")
-
-menu_input = input(
-    "Enter menu categories (comma-separated, e.g. starters, mains, desserts): "
+currency_response = client.responses.create(
+    model="gpt-4.1-mini",
+    input=currency_prompt
 )
 
-menu_categories = [item.strip() for item in menu_input.split(",")]
+currency = currency_response.output_text.strip()
 
-# Build prompt
-prompt = build_prompt(
-    restaurant_type,
-    audience,
-    diet,
-    budget,
-    cuisine,
-    menu_categories
+# -------------------------
+# STEP 2: Generate menu
+# -------------------------
+menu_prompt = f"""
+Create a menu with {num_dishes} items for a {restaurant_type} restaurant.
+
+Details:
+- Country: {country}
+- Currency: {currency}
+- Food genre: {food_genre}
+- Dietary preference: {diet}
+- Budget level: {budget}
+
+For each item include:
+- Dish name
+- Short description
+- Price using the correct currency
+
+Keep it simple and realistic.
+"""
+
+menu_response = client.responses.create(
+    model="gpt-4.1-mini",
+    input=menu_prompt
 )
 
-print("\n⏳ Generating menu...\n")
+menu = menu_response.output_text.strip()
 
-# Call AI
-ai_output = call_ai(prompt)
+# -------------------------
+# OUTPUT
+# -------------------------
+print("🌍 Country:", country)
+print("💰 Currency:", currency)
+print("🍴 Restaurant Type:", restaurant_type)
+print("🥘 Food Genre:", food_genre)
+print("🥗 Diet:", diet)
+print("💵 Budget:", budget)
 
-# Clean and load JSON
-clean_output = ai_output.replace("```json", "").replace("```", "").strip()
-menu_data = json.loads(clean_output)
+print("\n📋 Generated Menu:\n")
+print(menu)
 
-# Display menu
-print("✅ GENERATED MENU:\n")
-
-for dish in menu_data["menu"]:
-    print(f"🍴 {dish['dish_name']} ({dish['category']})")
-    print(f"   Ingredients: {', '.join(dish['key_ingredients'])}")
-    print(f"   Cost Level: {dish['estimated_cost']}")
-    print(f"   Dietary Tags: {', '.join(dish['dietary_tags'])}\n")
